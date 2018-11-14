@@ -78,8 +78,8 @@ def main():
     parser.add_argument('--gpu', default=0, type=int, help='GPU id')
     parser.add_argument('--id', default='', type=str, help='experiment ID')
     parser.add_argument('--arch', default='resnet34', type=str, help='architecture type: resnet18/152')
-    parser.add_argument('--epochs', default=200, type=int, help='total training epochs')
-    parser.add_argument('--batch', default=128, type=int, help='mini-batch size')
+    parser.add_argument('--epochs', default=400, type=int, help='total training epochs')
+    parser.add_argument('--batch', default=64, type=int, help='mini-batch size')
     parser.add_argument('--resume', '-r', type=str, help='resume from checkpoint')
     parser.add_argument('--root', default='./', type=str, help='root path')
     parser.add_argument('--data', default='./', type=str, help='data path')
@@ -192,13 +192,13 @@ def main():
         #Epoch finished
         print('[%d, %5d] lr: %.5f; loss: %.5f; accuracy: %.5f'
                %(epoch, global_step, LEARNING_RATE, np.mean(loss_list), accuracy))
-        if(epoch==60 or epoch==120 or epoch==160):
+        if(epoch==10 or epoch==200 or epoch==300):
              if(ROOT_PATH.endswith('/')): root_path = ROOT_PATH[:-1]
              else: root_path = ROOT_PATH
              if(ID!=''): checkpoint_path = root_path + '/' + ID + '/checkpoint/'
              else: checkpoint_path = ROOT_PATH + '/checkpoint/'
              save_checkpoint(net, epoch, LEARNING_RATE, NET_TYPE, checkpoint_path)
-             LEARNING_RATE = LEARNING_RATE * 0.2
+             LEARNING_RATE = LEARNING_RATE * 0.1
              for g in optimizer.param_groups:
                  g['lr'] = LEARNING_RATE
              print("[INFO] Learning rate: " + str(LEARNING_RATE))
