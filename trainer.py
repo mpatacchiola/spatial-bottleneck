@@ -39,7 +39,7 @@ from time import gmtime, strftime
 
 
 def return_cifar10_training(dataset_path, download=False, mini_batch_size=64):
-    transform = transforms.Compose([transforms.RandomHorizontalFlip(),
+    transform = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
                                     transforms.RandomCrop(size=[32,32], padding=4),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
@@ -51,8 +51,8 @@ def return_cifar10_training(dataset_path, download=False, mini_batch_size=64):
     return trainloader
 
 def return_cifar100_training(dataset_path, download=False, mini_batch_size = 64):
-    transform = transforms.Compose([transforms.RandomHorizontalFlip(),
-                                    transforms.RandomCrop(size=[32,32], padding=4),
+    transform = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
+                                    transforms.RandomCrop(size=[32,32], padding=4, padding_mode='symmetric'),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     #transform = transforms.Compose([transforms.ToTensor(),
@@ -63,7 +63,7 @@ def return_cifar100_training(dataset_path, download=False, mini_batch_size = 64)
     return trainloader
 
 def save_checkpoint(net, epoch, learning_rate, net_name, root_path):
-    time_string = strftime("%d%m%Y_%H%M%S", gmtime())
+    time_string = strftime('%d%m%Y_%H%M%S', gmtime())
     state = {'net': net.state_dict(), 'epoch': epoch, 'lr': learning_rate, 'time': time_string}
     if not os.path.isdir(root_path): os.mkdir(root_path)
     print('[INFO] Saving checkpoint: ' + 'ckpt_'+str(time_string)+'_ep'+str(epoch)+'.t7')
@@ -75,6 +75,7 @@ def main():
     ##Parser
     parser = argparse.ArgumentParser(description='PyTorch Training')
     parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+    parser.add_argument('--wd', default=0.0001, type=float, help='weight decay (default: 0.0001)')
     parser.add_argument('--gpu', default=0, type=int, help='GPU id')
     parser.add_argument('--id', default='', type=str, help='experiment ID')
     parser.add_argument('--arch', default='resnet34', type=str, help='architecture type: resnet18/152')
@@ -87,6 +88,7 @@ def main():
     args = parser.parse_args()
     DEVICE_ID = args.gpu
     LEARNING_RATE = args.lr
+    WEIGHT_DECAY = args.wd
     TOT_EPOCHS = args.epochs
     start_epoch = 0
     MINI_BATCH_SIZE = args.batch
@@ -101,6 +103,7 @@ def main():
     print("[INFO] Total epochs: " + str(TOT_EPOCHS))
     print("[INFO] Mini-batch size: " + str(MINI_BATCH_SIZE))
     print("[INFO] Learning rate: " + str(LEARNING_RATE))
+    print("[INFO] Weight decay: " + str(WEIGHT_DECAY))
     print("[INFO] Printing rate: " + str(PRINT_RATE))
     #torch.cuda.set_device(DEVICE_ID)
     #ATTENTION: os.environment must be called before any torch.cuda call
@@ -146,7 +149,7 @@ def main():
         print('[INFO] Starting from epoch: ' + str(start_epoch))
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9, nesterov=True, weight_decay=WEIGHT_DECAY)
 
     time_string = strftime("%d%m%Y_%H%M%S", gmtime())
     if(ID!=''): writer_path = ROOT_PATH + '/' + ID + '/log/' + time_string
@@ -166,10 +169,7 @@ def main():
             # Forward
             outputs = net(inputs)        
             # Estimate loss
-            if(hasattr(net, 'return_regularizer')):
-                loss = criterion(outputs, labels) + 0.01 * net.return_regularizer()
-            else:
-                loss = criterion(outputs, labels)
+            loss = criterion(outputs, labels)
             loss_list.append(loss.item())
             # Backward
             loss.backward()
@@ -181,11 +181,6 @@ def main():
             if(global_step % 5 == 0):          
                 writer.add_scalar('loss', loss, global_step)
                 writer.add_scalar('accuracy', accuracy, global_step)
-                if(hasattr(net, 'return_regularizer')):
-                    writer.add_scalar('regularizer', net.return_regularizer(), global_step)
-                if(hasattr(net, 'return_histograms')):
-                    for i, histogram in enumerate(net.return_histograms()):
-                        writer.add_histogram('gate_' + str(i), histogram, global_step)   
             global_step += 1 #increasing the global step     
             if(i % PRINT_RATE == 0): print('[%d, %5d] lr: %.5f; loss: %.5f; accuracy: %.3f' 
                                            %(epoch, global_step, LEARNING_RATE, np.mean(loss_list), accuracy))
@@ -200,7 +195,7 @@ def main():
              save_checkpoint(net, epoch, LEARNING_RATE, NET_TYPE, checkpoint_path)
              LEARNING_RATE = LEARNING_RATE * 0.1
              for g in optimizer.param_groups:
-                 g['lr'] = LEARNING_RATE
+                 g['lr'] = LEARNING_RATE                
              print("[INFO] Learning rate: " + str(LEARNING_RATE))
         if(epoch==TOT_EPOCHS-1):
              if(ROOT_PATH.endswith('/')): root_path = ROOT_PATH[:-1]
