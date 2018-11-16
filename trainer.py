@@ -192,7 +192,7 @@ def main():
         #Epoch finished
         print('[%d, %5d] lr: %.5f; loss: %.5f; accuracy: %.5f'
                %(epoch, global_step, LEARNING_RATE, np.mean(loss_list), accuracy))
-        if(epoch==10 or epoch==200 or epoch==300):
+        if(epoch==200 or epoch==300):
              if(ROOT_PATH.endswith('/')): root_path = ROOT_PATH[:-1]
              else: root_path = ROOT_PATH
              if(ID!=''): checkpoint_path = root_path + '/' + ID + '/checkpoint/'

@@ -18,7 +18,15 @@ class SpatialBottleneckBlock(nn.Module):
         super(SpatialBottleneckBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=2, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.convtrans2 = nn.ConvTranspose2d(planes, planes, kernel_size=3, stride=2, padding=1, bias=False)
+        if(stride==2): 
+            trans_stride = 1
+            trans_padding = 0
+        else: 
+            trans_stride = 2
+            trans_padding = 1
+        self.convtrans2 = nn.ConvTranspose2d(planes, planes, kernel_size=3, 
+                                             stride=trans_stride, padding=1, 
+                                             output_padding=trans_padding, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
@@ -29,8 +37,13 @@ class SpatialBottleneckBlock(nn.Module):
             )
 
     def forward(self, x):
+        #print("--------------")
+        #print(x.size())
         out = F.relu(self.bn1(self.conv1(x)))
+        #print(out.size())
         out = self.bn2(self.convtrans2(out))
+        #print(out.size())
+        #print("")
         out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -58,7 +71,6 @@ class BasicBlock(nn.Module):
         out += self.shortcut(x)
         out = F.relu(out)
         return out
-
 
 class Bottleneck(nn.Module):
     expansion = 4
