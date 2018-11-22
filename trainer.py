@@ -197,7 +197,7 @@ def main():
              for g in optimizer.param_groups:
                  g['lr'] = LEARNING_RATE                
              print("[INFO] Learning rate: " + str(LEARNING_RATE))
-        if(epoch==TOT_EPOCHS-1):
+        if(epoch==100 or epoch==TOT_EPOCHS-1):
              if(ROOT_PATH.endswith('/')): root_path = ROOT_PATH[:-1]
              else: root_path = ROOT_PATH
              if(ID!=''): checkpoint_path = root_path + '/' + ID + '/checkpoint/'
